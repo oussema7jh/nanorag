@@ -1,0 +1,17 @@
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.venv/
+venv/
+
+# nanorag local index
+.nanorag/
+
+# editors / os
+.idea/
+.vscode/
+.DS_Store

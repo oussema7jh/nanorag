@@ -1,0 +1,20 @@
+{"question": "What is ICE and why is it dangerous?", "expected_doc": "netrunning.md"}
+{"question": "What does black ICE do to intruders?", "expected_doc": "netrunning.md"}
+{"question": "What are the four phases of the Sandbreak protocol?", "expected_doc": "netrunning.md"}
+{"question": "Who was the netrunner known as Static Saint?", "expected_doc": "netrunning.md"}
+{"question": "Which district is famous for sushi counters and street food?", "expected_doc": "night-city.md"}
+{"question": "What happens during the Undead Hour?", "expected_doc": "night-city.md"}
+{"question": "How many districts does Night City have?", "expected_doc": "night-city.md"}
+{"question": "What is the legal civilian limit for cyberware replacement?", "expected_doc": "implants.md"}
+{"question": "What is the Brava index used for?", "expected_doc": "implants.md"}
+{"question": "What connector standard do cyberdeck neural sockets use?", "expected_doc": "implants.md"}
+{"question": "What happens if you miss your suppressant therapy doses?", "expected_doc": "implants.md"}
+{"question": "Who manufactures the Mirror line of implants?", "expected_doc": "corporations.md"}
+{"question": "What is the Witness Chain sold by Vault-X?", "expected_doc": "corporations.md"}
+{"question": "Which company makes the Kestrel patrol drones?", "expected_doc": "corporations.md"}
+{"question": "Which corporation controls the harbour and the cold-chain?", "expected_doc": "corporations.md"}
+{"question": "What is Signal/0 used for on the data grid?", "expected_doc": "the-grid.md"}
+{"question": "What is the vow taken by members of the Protocol Guild?", "expected_doc": "the-grid.md"}
+{"question": "What broadcasts on Numbers Station 7?", "expected_doc": "the-grid.md"}
+{"question": "In what year did the Collapse happen?", "expected_doc": "history.md"}
+{"question": "How did the Charter Wars end?", "expected_doc": "history.md"}
