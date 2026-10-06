@@ -127,8 +127,25 @@ fully deterministic, and it always cites. Set `OPENAI_API_KEY`,
 `ANTHROPIC_API_KEY` or `OLLAMA_URL` (or pass `--provider`) to route the same
 retrieved context through a real chat model with the same citation contract.
 
-**Idempotent ingest.** Chunk IDs are `doc:seq:hash`, so re-ingesting a corpus
-never duplicates vectors ([store.py](nanorag/store.py)).
+**Document replacement.** Re-ingesting a file replaces its previous passages,
+including when the file becomes empty. Storage IDs include a hash of the resolved
+source path, so equally named files in different directories remain distinct.
+Unchanged files require no new embeddings. Both keyword and vector retrieval
+refresh after replacement, even when the number of chunks stays the same.
+Replacement embeddings are computed before removing a file's existing passages.
+
+```bash
+# After editing your local Markdown/text knowledge base, run ingest again:
+python -m nanorag ingest docs/corpus
+```
+
+The library result includes `new_chunks` (all passages inserted for replaced
+files) and `removed_chunks`. Existing indexes migrate each file on its next
+ingest. Files deleted from disk are not automatically pruned; ingesting an empty
+file clears its indexed passages. Source identity uses absolute resolved paths,
+so moving a corpus creates new identities. Replacement is atomic per file in
+memory, not a transaction across an entire directory; concurrent writers are
+not supported. See the [delivery roadmap](docs/ROADMAP.md).
 
 ## Project layout
 
@@ -144,7 +161,7 @@ nanorag/
 │   ├── pipeline.py      # ingest → retrieve → generate
 │   ├── evals.py         # golden-set evaluation
 │   └── cli.py           # argparse CLI
-├── tests/               # 25 unit + integration tests
+├── tests/               # 31 unit + integration tests
 ├── docs/corpus/         # demo knowledge base (6 documents)
 ├── evals/golden.jsonl   # labelled question set
 └── .github/workflows/   # CI: tests + ingest + eval + smoke ask
@@ -164,6 +181,10 @@ print([p.source for p in answer.passages])  # where it came from
 ```
 
 ## Roadmap
+
+- [x] Safe re-ingestion of edited/empty files and distinct same-name sources
+- [ ] Explicit, scoped removal of deleted source files
+- [ ] Practical support-document corpus and answerability evaluation
 
 - [ ] Sentence-transformers embedder behind the `Embedder` protocol
 - [ ] SQLite-backed store for larger corpora

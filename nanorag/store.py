@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 from typing import List, Optional, Sequence, Tuple
 
 from .chunking import Chunk
@@ -41,6 +42,28 @@ class VectorStore:
             self._by_id[chunk.id] = len(self.chunks)
             self.chunks.append(chunk)
             self._vectors.append(vec)
+
+    def replace_source(self, source: str, chunks: Sequence[Chunk]) -> dict:
+        """Replace one local file's passages; embed before mutating the index."""
+        canonical = str(Path(source).resolve())
+        matches = [i for i, c in enumerate(self.chunks)
+                   if c.source and str(Path(c.source).resolve()) == canonical]
+        old = [self.chunks[i] for i in matches]
+        if old == list(chunks):
+            return {"added": 0, "removed": 0}
+        if any(str(Path(c.source).resolve()) != canonical for c in chunks):
+            raise ValueError("replacement chunks must belong to the source")
+        vectors = [self.embedder.embed(c.text) for c in chunks]
+        removed = set(matches)
+        kept = [(c, v) for i, (c, v) in enumerate(zip(self.chunks, self._vectors))
+                if i not in removed]
+        ids = [c.id for c, _ in kept] + [c.id for c in chunks]
+        if len(ids) != len(set(ids)):
+            raise ValueError("replacement would create duplicate chunk IDs")
+        self.chunks = [c for c, _ in kept] + list(chunks)
+        self._vectors = [v for _, v in kept] + vectors
+        self._by_id = {c.id: i for i, c in enumerate(self.chunks)}
+        return {"added": len(chunks), "removed": len(matches)}
 
     def search(self, query_vector: Sequence[float], k: int = 5) -> List[Tuple[Chunk, float]]:
         """Top-k chunks by cosine similarity (brute force — fine to ~100k)."""

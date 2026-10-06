@@ -9,6 +9,7 @@ Wires the subsystems together:
 from __future__ import annotations
 
 import os
+import hashlib
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -104,8 +105,7 @@ class RAGPipeline:
         )
 
     def _sync_index(self) -> None:
-        if len(self._bm25) != len(self.store):
-            self._bm25.index(self.store.chunks)
+        self._bm25.index(self.store.chunks)
 
     # ------------------------------------------------------------ #
     # ingest
@@ -117,32 +117,38 @@ class RAGPipeline:
         patterns: Sequence[str] = DEFAULT_PATTERNS,
     ) -> dict:
         """Chunk, embed and index every matching file under ``path``."""
-        root = Path(path)
+        root = Path(path).resolve()
+        if not root.exists():
+            raise FileNotFoundError(path)
         if root.is_file():
             files = [root]
         else:
             files = sorted(
-                p for pattern in patterns for p in root.rglob(pattern) if p.is_file()
+                {p.resolve() for pattern in patterns for p in root.rglob(pattern) if p.is_file()}
             )
         docs = 0
         new_chunks = 0
+        removed_chunks = 0
         for file in files:
             text = file.read_text(encoding="utf-8", errors="replace")
-            if not text.strip():
-                continue
             chunks = self.chunker.chunk(
                 text,
                 doc_id=file.stem,
                 metadata={"source": str(file)},
             )
-            before = len(self.store)
-            self.store.add(chunks)
-            new_chunks += len(self.store) - before
+            # Keep human-readable doc_id for evaluation; namespace storage IDs.
+            source_id = hashlib.sha256(str(file).encode("utf-8")).hexdigest()
+            for chunk in chunks:
+                chunk.id = source_id + ":" + chunk.id
+            changes = self.store.replace_source(str(file), chunks)
+            new_chunks += changes["added"]
+            removed_chunks += changes["removed"]
             docs += 1
-        if new_chunks:
+        if new_chunks or removed_chunks:
             self._sync_index()
             self.persist()
-        return {"documents": docs, "chunks": len(self.store), "new_chunks": new_chunks}
+        return {"documents": docs, "chunks": len(self.store),
+                "new_chunks": new_chunks, "removed_chunks": removed_chunks}
 
     def persist(self) -> None:
         if self.index_path:
