@@ -141,11 +141,38 @@ python -m nanorag ingest docs/corpus
 
 The library result includes `new_chunks` (all passages inserted for replaced
 files) and `removed_chunks`. Existing indexes migrate each file on its next
-ingest. Files deleted from disk are not automatically pruned; ingesting an empty
-file clears its indexed passages. Source identity uses absolute resolved paths,
+ingest. Files deleted from disk are not automatically pruned; use the explicit
+`prune` command below. Ingesting an empty file clears its indexed passages.
+Source identity uses absolute resolved paths,
 so moving a corpus creates new identities. Replacement is atomic per file in
 memory, not a transaction across an entire directory; concurrent writers are
 not supported. See the [delivery roadmap](docs/ROADMAP.md).
+
+### Removing deleted documents
+
+```bash
+# Preview missing indexed sources under this existing directory:
+python -m nanorag prune docs/corpus
+
+# Apply removal from the index (does not delete files from disk):
+python -m nanorag prune docs/corpus --apply
+```
+
+Pruning checks indexed source paths recursively within the selected directory;
+it preserves existing sources and sources outside that directory. Unlike ingest,
+it does not filter by filename extension or import new/edited content. Run ingest
+separately for updates. A missing directory or an inspection error stops pruning.
+Legacy relative source paths are preserved; re-ingest their files first to migrate
+them to absolute identities. An existing path that is now a directory is also
+preserved, rather than treated as a confirmed deletion.
+
+The preview lists candidate sources and passage counts. `--apply` rechecks the
+filesystem, stages vector and keyword indexes, and saves before replacing live
+state, so a failed save leaves the live index unchanged. The library equivalent
+is `pipe.prune_path("docs/corpus", dry_run=False)`; `dry_run=True` is the default.
+Preview and apply are separate snapshots: stop concurrent writers and filesystem
+changes during application. An existing but empty mounted folder cannot be
+distinguished from deliberately deleted files; inspect the preview before applying.
 
 ## Project layout
 
@@ -161,7 +188,7 @@ nanorag/
 │   ├── pipeline.py      # ingest → retrieve → generate
 │   ├── evals.py         # golden-set evaluation
 │   └── cli.py           # argparse CLI
-├── tests/               # 31 unit + integration tests
+├── tests/               # 41 unit + integration tests
 ├── docs/corpus/         # demo knowledge base (6 documents)
 ├── evals/golden.jsonl   # labelled question set
 └── .github/workflows/   # CI: tests + ingest + eval + smoke ask
@@ -183,7 +210,7 @@ print([p.source for p in answer.passages])  # where it came from
 ## Roadmap
 
 - [x] Safe re-ingestion of edited/empty files and distinct same-name sources
-- [ ] Explicit, scoped removal of deleted source files
+- [x] Explicit, scoped removal of deleted source files with preview and apply
 - [ ] Practical support-document corpus and answerability evaluation
 
 - [ ] Sentence-transformers embedder behind the `Embedder` protocol

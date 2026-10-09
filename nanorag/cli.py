@@ -1,4 +1,4 @@
-"""Command-line interface: ingest, ask, chat, eval, info."""
+"""Command-line interface: ingest, prune, ask, chat, eval, info."""
 
 from __future__ import annotations
 
@@ -53,6 +53,23 @@ def cmd_ingest(args) -> int:
     if stats["documents"] == 0:
         print(_c("no matching files found (default patterns: *.md, *.txt)", DIM))
         return 1
+    return 0
+
+
+def cmd_prune(args) -> int:
+    pipeline = _open_pipeline(args)
+    try:
+        result = pipeline.prune_path(args.path, dry_run=not args.apply)
+    except (OSError, RuntimeError) as exc:
+        print(f"prune failed: {exc}", file=sys.stderr)
+        return 1
+    action = "would remove" if result["dry_run"] else "removed"
+    print(f"{action} {result['documents']} documents "
+          f"({result['removed_chunks']} chunks) under {result['root']}")
+    for source in result["sources"]:
+        print(f"  {source}")
+    if result["dry_run"]:
+        print("Preview only. Re-run with --apply to update the index.")
     return 0
 
 
@@ -136,6 +153,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("path", help="file or directory to ingest")
     p.add_argument("--patterns", nargs="+", default=["*.md", "*.txt"], help="glob patterns when ingesting a directory")
     p.set_defaults(func=cmd_ingest)
+
+    p = sub.add_parser("prune", help="preview removal of missing indexed files in a directory")
+    p.add_argument("path", help="existing directory to inspect recursively")
+    p.add_argument("--apply", action="store_true", help="remove listed missing sources from the index")
+    p.set_defaults(func=cmd_prune)
 
     p = sub.add_parser("ask", help="ask one question")
     p.add_argument("question")

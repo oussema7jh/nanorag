@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import hashlib
 import time
+import stat
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional, Sequence, Tuple
@@ -149,6 +150,51 @@ class RAGPipeline:
             self.persist()
         return {"documents": docs, "chunks": len(self.store),
                 "new_chunks": new_chunks, "removed_chunks": removed_chunks}
+
+    def prune_path(self, path: str, *, dry_run: bool = True) -> dict:
+        """Preview or remove indexed sources missing under an existing directory.
+
+        Only absolute source identities are eligible. Legacy relative paths need
+        re-ingestion first. Inspection errors propagate before any index change.
+        This removes passages from the index only, never files from disk.
+        """
+        root = Path(path).resolve()
+        if not stat.S_ISDIR(root.stat().st_mode):
+            raise NotADirectoryError(str(root))
+        missing = set()
+        for source in {c.source for c in self.store.chunks if c.source}:
+            source_path = Path(source)
+            if not source_path.is_absolute():
+                continue
+            resolved = source_path.resolve()
+            try:
+                resolved.relative_to(root)
+            except ValueError:
+                continue
+            try:
+                resolved.stat()
+            except FileNotFoundError:
+                missing.add(source)
+        removed = sum(c.source in missing for c in self.store.chunks)
+        result = {"root": str(root), "sources": sorted(missing),
+                  "documents": len(missing), "removed_chunks": removed,
+                  "dry_run": dry_run}
+        if dry_run or not missing:
+            return result
+
+        # Stage both indexes and persist before publishing the new in-memory
+        # state. A disk-write failure leaves the live retrievers unchanged.
+        staged = VectorStore(self.embedder)
+        kept = [(c, v) for c, v in zip(self.store.chunks, self.store._vectors)
+                if c.source not in missing]
+        staged.add([c for c, _ in kept], [v for _, v in kept])
+        keyword_index = BM25()
+        keyword_index.index(staged.chunks)
+        if self.index_path:
+            staged.save(self.index_path)
+        self.store = staged
+        self._bm25 = keyword_index
+        return result
 
     def persist(self) -> None:
         if self.index_path:
