@@ -67,6 +67,8 @@ class VectorStore:
 
     def search(self, query_vector: Sequence[float], k: int = 5) -> List[Tuple[Chunk, float]]:
         """Top-k chunks by cosine similarity (brute force — fine to ~100k)."""
+        if k <= 0:
+            return []
         scored: List[Tuple[Chunk, float]] = []
         for chunk, vec in zip(self.chunks, self._vectors):
             scored.append((chunk, cosine(query_vector, vec)))

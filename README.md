@@ -221,3 +221,16 @@ print([p.source for p in answer.passages])  # where it came from
 ## License
 
 [MIT](LICENSE) © Oussema Braham
+
+### Search result limits
+
+`BM25.search`, `VectorStore.search`, `VectorRetriever.search`, and
+`HybridRetriever.search` return an empty list when `k <= 0`. These calls skip
+scoring, query embedding, and child retrieval work as applicable. Positive limits
+return at most `k` results in descending score order.
+
+Run the result-limit regression tests without extra dependencies:
+
+```bash
+python -m unittest discover -s tests -p test_search_limits.py -v
+```

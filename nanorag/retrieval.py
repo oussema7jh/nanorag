@@ -62,7 +62,7 @@ class BM25:
         self._avgdl = (total / len(self._docs)) if self._docs else 0.0
 
     def search(self, query: str, k: int = 5) -> List[Tuple[Chunk, float]]:
-        if not self._docs:
+        if k <= 0 or not self._docs:
             return []
         scores: List[float] = [0.0] * len(self._docs)
         n_docs = len(self._docs)
@@ -90,7 +90,7 @@ class VectorRetriever:
         self.embedder = embedder
 
     def search(self, query: str, k: int = 5) -> List[Tuple[Chunk, float]]:
-        if len(self.store) == 0:
+        if k <= 0 or len(self.store) == 0:
             return []
         return self.store.search(self.embedder.embed(query), k)
 
@@ -110,6 +110,8 @@ class HybridRetriever:
         self.weights = list(weights)
 
     def search(self, query: str, k: int = 5) -> List[Tuple[Chunk, float]]:
+        if k <= 0:
+            return []
         pool: Dict[str, Tuple[Chunk, float]] = {}
         fused: Dict[str, float] = {}
         depth = max(k * 4, 20)
