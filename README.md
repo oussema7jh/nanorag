@@ -222,6 +222,19 @@ print([p.source for p in answer.passages])  # where it came from
 
 [MIT](LICENSE) © Oussema Braham
 
+### Automated checks
+
+The [Tests workflow](https://github.com/oussema7jh/nanorag/actions/workflows/tests.yml)
+runs the full test suite and checks the installed command-line entry point on
+Python 3.9 and 3.13 for pushes and pull requests. It can also be started manually
+from the Actions tab. Run the same tests locally with:
+
+```bash
+python -m pip install -e ".[dev]"
+python -m pytest
+nanorag --help
+```
+
 ### Search result limits
 
 `BM25.search`, `VectorStore.search`, `VectorRetriever.search`, and
