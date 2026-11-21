@@ -222,17 +222,14 @@ print([p.source for p in answer.passages])  # where it came from
 
 [MIT](LICENSE) © Oussema Braham
 
-### Automated checks
+## Verification
 
-The [Tests workflow](https://github.com/oussema7jh/nanorag/actions/workflows/tests.yml)
-runs the full test suite and checks the installed command-line entry point on
-Python 3.9 and 3.13 for pushes and pull requests. It can also be started manually
-from the Actions tab. Run the same tests locally with:
+The [CI workflow](.github/workflows/ci.yml) runs tests, a CLI smoke check, and the bundled evaluation. Run the checks locally with:
 
 ```bash
 python -m pip install -e ".[dev]"
 python -m pytest
-nanorag --help
+python -m nanorag eval
 ```
 
 ### Search result limits
